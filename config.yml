@@ -1,0 +1,6 @@
+---
+data_dir: ./data
+repos:
+  distonic:
+    url: https://github.com/stonicio/distonic.git
+...
