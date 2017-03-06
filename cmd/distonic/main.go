@@ -1,21 +1,26 @@
 package main
 
 import (
-	"fmt"
 	"github.com/spf13/viper"
 	"github.com/stonicio/distonic"
+	"log"
 )
 
 func main() {
 	viper.AddConfigPath(".")
-	err := viper.ReadInConfig()
-	if err != nil {
-		panic(fmt.Errorf("Fatal error in config file: %s \n", err))
+	if err := viper.ReadInConfig(); err != nil {
+		log.Panicf("Fatal error in config file: %s", err)
 	}
+	log.Println("Config read successfully")
 
-	accountant := distonic.NewAccountant()
-	err = accountant.Run()
+	accountant, err := distonic.NewAccountant()
 	if err != nil {
-		panic(fmt.Errorf("Fatal error in accountant service file: %s \n", err))
+		log.Panicf("Cannot create accountant: %s", err)
 	}
+	log.Println("Created accountant")
+
+	if err := accountant.Run(); err != nil {
+		log.Panicf("Fatal error in accountant service file: %s", err)
+	}
+	log.Println("Shutting down")
 }
