@@ -1,5 +1,4 @@
 ---
-data_dir: ./data
 repos:
   distonic:
     url: https://github.com/stonicio/distonic.git
@@ -8,4 +7,6 @@ repos:
     - develop
     - feature/*
     interval: 1m
+data_dir: ./data
+num_workers: 3
 ...

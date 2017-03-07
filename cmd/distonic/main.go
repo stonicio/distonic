@@ -1,9 +1,10 @@
 package main
 
 import (
+	"log"
+
 	"github.com/spf13/viper"
 	"github.com/stonicio/distonic"
-	"log"
 )
 
 func main() {
@@ -13,14 +14,15 @@ func main() {
 	}
 	log.Println("Config read successfully")
 
-	accountant, err := distonic.NewAccountant()
+	supervisor, err := distonic.NewSupervisor()
 	if err != nil {
-		log.Panicf("Cannot create accountant: %s", err)
+		log.Panicf("Cannot create supervisor: %s", err)
 	}
-	log.Println("Created accountant")
+	log.Println("Created supervisor")
 
-	if err := accountant.Run(); err != nil {
-		log.Panicf("Fatal error in accountant service file: %s", err)
+	if err := supervisor.Run(); err != nil {
+		log.Panicf("Fatal error in supervisor service: %s", err)
 	}
+
 	log.Println("Shutting down")
 }
