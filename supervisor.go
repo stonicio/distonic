@@ -14,6 +14,7 @@ type Supervisor struct {
 	repos   map[string]*Watcher
 	workers []*Worker
 	queue   *list.List
+	bell    chan bool
 }
 
 type Job struct {
@@ -30,7 +31,8 @@ func NewSupervisor() (*Supervisor, error) {
 	s := &Supervisor{
 		repos:   map[string]*Watcher{},
 		workers: []*Worker{},
-		queue:   list.New()}
+		queue:   list.New(),
+		bell:    make(chan bool, 1)}
 
 	for repoName := range viper.GetStringMap("repos") {
 		repoSettings := reposConfig.Sub(repoName)
@@ -87,52 +89,68 @@ func (s *Supervisor) Run() error {
 	return nil
 }
 
-func (s *Supervisor) runWorkers() error {
-	var wg sync.WaitGroup
-	var errorCount int
-
-	for n, worker := range s.workers {
-		wg.Add(1)
-		go func() {
-			err := worker.Run()
-			if err != nil {
-				log.Printf("Error in worker #%s: %s", n, err)
-				errorCount += 1
-			}
-			wg.Done()
-		}()
-	}
-
-	wg.Wait()
-	if errorCount > 0 {
-		return fmt.Errorf("There was %s errors running workers", errorCount)
-	}
-	return nil
-}
-
 func (s *Supervisor) runWatchers() error {
-	var wg sync.WaitGroup
 	var errorCount int
+	jobs := make(chan *Job, len(s.repos))
 
 	for name, watcher := range s.repos {
-		wg.Add(1)
 		go func() {
-			err := watcher.Run()
+			err := watcher.Run(jobs)
 			if err != nil {
 				log.Printf("Error in watcher for repo %s: %s", name, err)
 				errorCount += 1
 			}
-			wg.Done()
 		}()
 	}
 
-	wg.Wait()
+	for job := range jobs {
+		s.schedule(job)
+	}
+
 	if errorCount > 0 {
-		return fmt.Errorf("There was %s errors running watchers", errorCount)
+		return fmt.Errorf("There were %s errors running watchers", errorCount)
+	}
+	return nil
+}
+
+func (s *Supervisor) runWorkers() error {
+	var errorCount int
+	jobs := make(chan *Job, len(s.workers))
+
+	for n, worker := range s.workers {
+		go func() {
+			err := worker.Run(jobs)
+			if err != nil {
+				log.Printf("Error in worker #%s: %s", n, err)
+				errorCount += 1
+			}
+		}()
+	}
+
+	for _ = range s.bell {
+		log.Printf("Bell rings")
+		for s.queue.Len() > 0 {
+			job := s.queue.Remove(s.queue.Front())
+			jobs <- job.(*Job)
+		}
+	}
+
+	if errorCount > 0 {
+		return fmt.Errorf("There were %s errors running workers", errorCount)
 	}
 	return nil
 }
 
 func (s *Supervisor) schedule(job *Job) error {
+	s.queue.PushBack(job)
+
+	select {
+	case <-s.bell:
+		log.Print("Silenced the bell")
+	default:
+		log.Print("Bell is idle")
+	}
+	s.bell <- true
+	log.Print("Rang the bell")
 	return nil
 }

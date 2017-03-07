@@ -1,12 +1,13 @@
 package distonic
 
 import (
-	git "github.com/libgit2/git2go"
-	"github.com/spf13/viper"
 	"log"
 	"path"
 	"path/filepath"
 	"time"
+
+	git "github.com/libgit2/git2go"
+	"github.com/spf13/viper"
 )
 
 type Watcher struct {
@@ -51,7 +52,7 @@ func NewWatcher(name, url string, branchSpecs []string) (*Watcher, error) {
 	return w, nil
 }
 
-func (w *Watcher) Run() error {
+func (w *Watcher) Run(jobs chan<- *Job) error {
 	interval := viper.GetDuration("repos." + w.name + ".interval")
 
 	for {
@@ -71,6 +72,10 @@ func (w *Watcher) Run() error {
 			}
 			w.branchRefs[branchName] = ref
 			log.Printf("Updated `%s` branch for repo `%s`", branchName, w.name)
+
+			job := &Job{repo: w.repo, branchName: branchName, ref: ref}
+			jobs <- job
+			log.Printf("New job: %s", job)
 		}
 
 		time.Sleep(interval)
