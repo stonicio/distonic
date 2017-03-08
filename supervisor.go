@@ -16,7 +16,7 @@ type Supervisor struct {
 	bell    chan bool
 }
 
-type Job struct {
+type Order struct {
 	repoName   string
 	repo       *git.Repository
 	branchName string
@@ -78,42 +78,42 @@ func (s *Supervisor) Run() {
 }
 
 func (s *Supervisor) runWatchers() {
-	jobs := make(chan *Job, len(s.repos))
+	orders := make(chan *Order, len(s.repos))
 
 	for name, watcher := range s.repos {
 		go func() {
-			err := watcher.Run(jobs)
+			err := watcher.Run(orders)
 			if err != nil {
 				log.Printf("Error in watcher for repo %s: %s", name, err)
 			}
 		}()
 	}
 
-	for job := range jobs {
-		s.schedule(job)
+	for order := range orders {
+		s.schedule(order)
 	}
 }
 
 func (s *Supervisor) runWorkers() {
-	jobs := make(chan *Job, len(s.workers))
+	orders := make(chan *Order, len(s.workers))
 
 	for _, worker := range s.workers {
 		go func() {
-			worker.Run(jobs)
+			worker.Run(orders)
 		}()
 	}
 
 	for _ = range s.bell {
 		log.Printf("Bell rings")
 		for s.queue.Len() > 0 {
-			job := s.queue.Remove(s.queue.Front())
-			jobs <- job.(*Job)
+			order := s.queue.Remove(s.queue.Front())
+			orders <- order.(*Order)
 		}
 	}
 }
 
-func (s *Supervisor) schedule(job *Job) error {
-	s.queue.PushBack(job)
+func (s *Supervisor) schedule(order *Order) error {
+	s.queue.PushBack(order)
 
 	select {
 	case <-s.bell:

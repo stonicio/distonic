@@ -52,7 +52,7 @@ func NewWatcher(name, url string, branchSpecs []string) (*Watcher, error) {
 	return w, nil
 }
 
-func (w *Watcher) Run(jobs chan<- *Job) error {
+func (w *Watcher) Run(orders chan<- *Order) error {
 	interval := viper.GetDuration("repos." + w.name + ".interval")
 
 	for {
@@ -87,13 +87,13 @@ func (w *Watcher) Run(jobs chan<- *Job) error {
 					w.name, objectCommit, err)
 				return err
 			}
-			job := &Job{
+			order := &Order{
 				repoName:   w.name,
 				repo:       w.repo,
 				branchName: branchName,
 				commit:     commit}
-			jobs <- job
-			log.Printf("New job: %s", job)
+			orders <- order
+			log.Printf("New order: %s", order)
 		}
 
 		time.Sleep(interval)

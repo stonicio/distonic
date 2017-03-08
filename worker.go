@@ -16,33 +16,33 @@ func NewWorker() (*Worker, error) {
 	return &Worker{}, nil
 }
 
-func (w *Worker) Run(jobs <-chan *Job) {
-	for job := range jobs {
-		log.Printf("Received job: %s", job)
-		err := w.processJob(job)
+func (w *Worker) Run(orders <-chan *Order) {
+	for order := range orders {
+		log.Printf("Received order: %s", order)
+		err := w.processOrder(order)
 		if err != nil {
-			log.Printf("Error processing job `%s`: %s", job, err)
+			log.Printf("Error processing order `%s`: %s", order, err)
 		}
 	}
 }
 
-func (w *Worker) processJob(job *Job) error {
-	workdir, err := w.prepareWorkdir(job)
+func (w *Worker) processOrder(order *Order) error {
+	workdir, err := w.prepareWorkdir(order)
 	if err != nil {
-		log.Printf("Error preparing workdir for job `%s`: %s", job, err)
+		log.Printf("Error preparing workdir for order `%s`: %s", order, err)
 		return err
 	}
 
 	pipeline, err := w.readPipeline(workdir)
 	if err != nil {
-		log.Printf("Could not read pipeline for job `%s`: %s", job, err)
+		log.Printf("Could not read pipeline for order `%s`: %s", order, err)
 		return err
 	}
 	log.Printf("Read pipeline %s", pipeline)
 	return nil
 }
 
-func (w *Worker) prepareWorkdir(job *Job) (string, error) {
+func (w *Worker) prepareWorkdir(order *Order) (string, error) {
 	var err error
 	var repo *git.Repository
 
@@ -50,22 +50,22 @@ func (w *Worker) prepareWorkdir(job *Job) (string, error) {
 	workDir := path.Join(
 		dataDir,
 		"worker",
-		job.repoName,
-		job.branchName,
-		job.commit.Object.Id().String())
+		order.repoName,
+		order.branchName,
+		order.commit.Object.Id().String())
 
 	if _, err := os.Stat(workDir); os.IsNotExist(err) {
 		repo, err = git.Clone(
-			job.repo.Path(),
+			order.repo.Path(),
 			workDir,
 			&git.CloneOptions{
 				Bare:           false,
-				CheckoutBranch: job.branchName,
+				CheckoutBranch: order.branchName,
 				CheckoutOpts:   &git.CheckoutOpts{Strategy: git.CheckoutForce}})
 		if err != nil {
 			log.Printf(
 				"Cannot make working clone for repo `%s`: %s",
-				job.repoName, err)
+				order.repoName, err)
 			return "", err
 		}
 	} else {
@@ -73,14 +73,14 @@ func (w *Worker) prepareWorkdir(job *Job) (string, error) {
 		if err != nil {
 			log.Printf(
 				"Cannot open working clone for repo `%s`: %s",
-				job.repoName, err)
+				order.repoName, err)
 			return "", err
 		}
 	}
 
-	err = repo.SetHeadDetached(job.commit.Object.Id())
+	err = repo.SetHeadDetached(order.commit.Object.Id())
 	if err != nil {
-		log.Printf("Cannot set head on repo `%s`: %s", job.repoName, err)
+		log.Printf("Cannot set head on repo `%s`: %s", order.repoName, err)
 		return "", err
 	}
 
@@ -88,7 +88,7 @@ func (w *Worker) prepareWorkdir(job *Job) (string, error) {
 	if err != nil {
 		log.Printf(
 			"Cannot checkout workdir for repo `%s`: %s",
-			job.repoName, err)
+			order.repoName, err)
 		return "", err
 	}
 
