@@ -27,6 +27,14 @@ func (w *Worker) Run(jobs <-chan *Job) {
 }
 
 func (w *Worker) processJob(job *Job) error {
+	if err := w.prepareWorkdir(job); err != nil {
+		log.Printf("Error preparing workdir for job `%s`: %s", job, err)
+		return err
+	}
+	return nil
+}
+
+func (w *Worker) prepareWorkdir(job *Job) error {
 	var err error
 	var repo *git.Repository
 

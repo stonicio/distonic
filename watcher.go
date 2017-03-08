@@ -20,8 +20,8 @@ type Watcher struct {
 }
 
 func NewWatcher(name, url string, branchSpecs []string) (*Watcher, error) {
-	data_dir := viper.GetString("data_dir")
-	dir := path.Join(data_dir, "watcher", name)
+	dataDir := viper.GetString("data_dir")
+	dir := path.Join(dataDir, "watcher", name)
 
 	repo, err := git.InitRepository(dir, true)
 	if err != nil {
