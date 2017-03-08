@@ -20,9 +20,7 @@ func main() {
 	}
 	log.Println("Created supervisor")
 
-	if err := supervisor.Run(); err != nil {
-		log.Panicf("Fatal error in supervisor service: %s", err)
-	}
+	supervisor.Run()
 
 	log.Println("Shutting down")
 }

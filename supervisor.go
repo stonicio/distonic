@@ -2,7 +2,6 @@ package distonic
 
 import (
 	"container/list"
-	"fmt"
 	"log"
 	"sync"
 
@@ -60,38 +59,25 @@ func NewSupervisor() (*Supervisor, error) {
 	return s, nil
 }
 
-func (s *Supervisor) Run() error {
+func (s *Supervisor) Run() {
 	var wg sync.WaitGroup
-	var errWorkers error
-	var errWatchers error
 
 	wg.Add(1)
 	go func() {
-		errWorkers = s.runWorkers()
-		if errWorkers != nil {
-			log.Print(errWorkers)
-		}
+		s.runWorkers()
 		wg.Done()
 	}()
 
 	wg.Add(1)
 	go func() {
-		errWatchers = s.runWatchers()
-		if errWatchers != nil {
-			log.Print(errWatchers)
-		}
+		s.runWatchers()
 		wg.Done()
 	}()
 
 	wg.Wait()
-	if errWorkers != nil || errWatchers != nil {
-		return fmt.Errorf("Supervisor exited with errors")
-	}
-	return nil
 }
 
-func (s *Supervisor) runWatchers() error {
-	var errorCount int
+func (s *Supervisor) runWatchers() {
 	jobs := make(chan *Job, len(s.repos))
 
 	for name, watcher := range s.repos {
@@ -99,7 +85,6 @@ func (s *Supervisor) runWatchers() error {
 			err := watcher.Run(jobs)
 			if err != nil {
 				log.Printf("Error in watcher for repo %s: %s", name, err)
-				errorCount += 1
 			}
 		}()
 	}
@@ -107,24 +92,14 @@ func (s *Supervisor) runWatchers() error {
 	for job := range jobs {
 		s.schedule(job)
 	}
-
-	if errorCount > 0 {
-		return fmt.Errorf("There were %s errors running watchers", errorCount)
-	}
-	return nil
 }
 
-func (s *Supervisor) runWorkers() error {
-	var errorCount int
+func (s *Supervisor) runWorkers() {
 	jobs := make(chan *Job, len(s.workers))
 
-	for n, worker := range s.workers {
+	for _, worker := range s.workers {
 		go func() {
-			err := worker.Run(jobs)
-			if err != nil {
-				log.Printf("Error in worker #%s: %s", n, err)
-				errorCount += 1
-			}
+			worker.Run(jobs)
 		}()
 	}
 
@@ -135,11 +110,6 @@ func (s *Supervisor) runWorkers() error {
 			jobs <- job.(*Job)
 		}
 	}
-
-	if errorCount > 0 {
-		return fmt.Errorf("There were %s errors running workers", errorCount)
-	}
-	return nil
 }
 
 func (s *Supervisor) schedule(job *Job) error {
