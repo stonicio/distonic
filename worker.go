@@ -27,14 +27,22 @@ func (w *Worker) Run(jobs <-chan *Job) {
 }
 
 func (w *Worker) processJob(job *Job) error {
-	if err := w.prepareWorkdir(job); err != nil {
+	workdir, err := w.prepareWorkdir(job)
+	if err != nil {
 		log.Printf("Error preparing workdir for job `%s`: %s", job, err)
 		return err
 	}
+
+	pipeline, err := w.readPipeline(workdir)
+	if err != nil {
+		log.Printf("Could not read pipeline for job `%s`: %s", job, err)
+		return err
+	}
+	log.Printf("Read pipeline %s", pipeline)
 	return nil
 }
 
-func (w *Worker) prepareWorkdir(job *Job) error {
+func (w *Worker) prepareWorkdir(job *Job) (string, error) {
 	var err error
 	var repo *git.Repository
 
@@ -58,7 +66,7 @@ func (w *Worker) prepareWorkdir(job *Job) error {
 			log.Printf(
 				"Cannot make working clone for repo `%s`: %s",
 				job.repoName, err)
-			return err
+			return "", err
 		}
 	} else {
 		repo, err = git.OpenRepository(workDir)
@@ -66,14 +74,14 @@ func (w *Worker) prepareWorkdir(job *Job) error {
 			log.Printf(
 				"Cannot open working clone for repo `%s`: %s",
 				job.repoName, err)
-			return err
+			return "", err
 		}
 	}
 
 	err = repo.SetHeadDetached(job.commit.Object.Id())
 	if err != nil {
 		log.Printf("Cannot set head on repo `%s`: %s", job.repoName, err)
-		return err
+		return "", err
 	}
 
 	err = repo.CheckoutHead(&git.CheckoutOpts{Strategy: git.CheckoutForce})
@@ -81,9 +89,13 @@ func (w *Worker) prepareWorkdir(job *Job) error {
 		log.Printf(
 			"Cannot checkout workdir for repo `%s`: %s",
 			job.repoName, err)
-		return err
+		return "", err
 	}
 
 	log.Printf("Working dir `%s` is ready", workDir)
-	return nil
+	return workDir, nil
+}
+
+func (w *Worker) readPipeline(dir string) (*Pipeline, error) {
+	return &Pipeline{}, nil
 }
