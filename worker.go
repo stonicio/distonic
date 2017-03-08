@@ -4,6 +4,8 @@ import (
 	"log"
 	"os"
 	"path"
+	"strings"
+	"text/template"
 
 	git "github.com/libgit2/git2go"
 	"github.com/spf13/viper"
@@ -33,7 +35,13 @@ func (w *Worker) processOrder(order *Order) error {
 		return err
 	}
 
-	pipeline, err := w.readPipeline(workdir)
+	context := &Context{
+		workdir:      workdir,
+		branch:       order.branchName,
+		branchDashed: strings.Replace(order.branchName, "/", "-", -1),
+		commit:       order.commit.Object.Id().String()}
+
+	pipeline, err := w.readPipeline(context)
 	if err != nil {
 		log.Printf("Could not read pipeline for order `%s`: %s", order, err)
 		return err
@@ -96,6 +104,37 @@ func (w *Worker) prepareWorkdir(order *Order) (string, error) {
 	return workDir, nil
 }
 
-func (w *Worker) readPipeline(dir string) (*Pipeline, error) {
+func (w *Worker) readPipeline(context *Context) (*Pipeline, error) {
+	configName := "distonic"
+	configFilename := path.Join(context.workdir, "distonic.yml")
+
+	t, err := template.ParseFiles(configFilename)
+	if err != nil {
+		log.Printf("Could not load distonic pipeline: %s", err)
+		return nil, err
+	}
+
+	config, err := os.Create(configFilename)
+	if err != nil {
+		log.Printf("Could not open distonic pipeline for writing: %s", err)
+		return nil, err
+	}
+
+	if err := t.Execute(config, context); err != nil {
+		log.Printf("Could execute distonic pipeline template: %s", err)
+		return nil, err
+	}
+
+	p := viper.New()
+	p.SetConfigName(configName)
+	p.AddConfigPath(context.workdir)
+	if err := p.ReadInConfig(); err != nil {
+		log.Printf(
+			"Could not find distonic pipeline: %s", err)
+		return nil, err
+	}
+
+	log.Fatal(p.AllKeys())
+
 	return &Pipeline{}, nil
 }

@@ -1,0 +1,15 @@
+---
+build:
+- name: build container
+  docker_build: null
+test:
+- name: go test
+  docker_run:
+    cmd: go test
+release:
+- name: publish container
+  docker_registry:
+    repo: stonicio/distonic
+    tags:
+      - '{{ .BranchDashed }}'
+...
