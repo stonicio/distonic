@@ -18,9 +18,10 @@ type Supervisor struct {
 }
 
 type Job struct {
+	repoName   string
 	repo       *git.Repository
-	ref        *git.Reference
 	branchName string
+	commit     *git.Commit
 }
 
 func NewSupervisor() (*Supervisor, error) {

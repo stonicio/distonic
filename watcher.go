@@ -21,7 +21,7 @@ type Watcher struct {
 
 func NewWatcher(name, url string, branchSpecs []string) (*Watcher, error) {
 	data_dir := viper.GetString("data_dir")
-	dir := path.Join(data_dir, name)
+	dir := path.Join(data_dir, "watcher", name)
 
 	repo, err := git.InitRepository(dir, true)
 	if err != nil {
@@ -73,7 +73,25 @@ func (w *Watcher) Run(jobs chan<- *Job) error {
 			w.branchRefs[branchName] = ref
 			log.Printf("Updated `%s` branch for repo `%s`", branchName, w.name)
 
-			job := &Job{repo: w.repo, branchName: branchName, ref: ref}
+			objectCommit, err := ref.Peel(git.ObjectCommit)
+			if err != nil {
+				log.Printf(
+					"Cannot read repo `%s` commit object for ref: %s",
+					w.name, ref, err)
+				return err
+			}
+			commit, err := objectCommit.AsCommit()
+			if err != nil {
+				log.Printf(
+					"Cannot read repo `%s` commit for object: %s",
+					w.name, objectCommit, err)
+				return err
+			}
+			job := &Job{
+				repoName:   w.name,
+				repo:       w.repo,
+				branchName: branchName,
+				commit:     commit}
 			jobs <- job
 			log.Printf("New job: %s", job)
 		}
