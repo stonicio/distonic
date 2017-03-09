@@ -1,8 +1,8 @@
 package distonic
 
 type Context struct {
-	workdir      string
-	branch       string
-	branchDashed string
-	commit       string
+	Workdir      string
+	Branch       string
+	BranchDashed string
+	Commit       string
 }

@@ -36,17 +36,19 @@ func (w *Worker) processOrder(order *Order) error {
 	}
 
 	context := &Context{
-		workdir:      workdir,
-		branch:       order.branchName,
-		branchDashed: strings.Replace(order.branchName, "/", "-", -1),
-		commit:       order.commit.Object.Id().String()}
+		Workdir:      workdir,
+		Branch:       order.branchName,
+		BranchDashed: strings.Replace(order.branchName, "/", "-", -1),
+		Commit:       order.commit.Object.Id().String()}
 
 	pipeline, err := w.readPipeline(context)
 	if err != nil {
 		log.Printf("Could not read pipeline for order `%s`: %s", order, err)
 		return err
 	}
-	log.Printf("Read pipeline %s", pipeline)
+
+	log.Fatal(pipeline)
+
 	return nil
 }
 
@@ -106,11 +108,11 @@ func (w *Worker) prepareWorkdir(order *Order) (string, error) {
 
 func (w *Worker) readPipeline(context *Context) (*Pipeline, error) {
 	configName := "distonic"
-	configFilename := path.Join(context.workdir, "distonic.yml")
+	configFilename := path.Join(context.Workdir, "distonic.yml")
 
 	t, err := template.ParseFiles(configFilename)
 	if err != nil {
-		log.Printf("Could not load distonic pipeline: %s", err)
+		log.Printf("Could not load distonic pipeline template: %s", err)
 		return nil, err
 	}
 
@@ -121,20 +123,22 @@ func (w *Worker) readPipeline(context *Context) (*Pipeline, error) {
 	}
 
 	if err := t.Execute(config, context); err != nil {
-		log.Printf("Could execute distonic pipeline template: %s", err)
+		log.Printf("Could not execute distonic pipeline template: %s", err)
 		return nil, err
 	}
 
 	p := viper.New()
 	p.SetConfigName(configName)
-	p.AddConfigPath(context.workdir)
+	p.AddConfigPath(context.Workdir)
 	if err := p.ReadInConfig(); err != nil {
-		log.Printf(
-			"Could not find distonic pipeline: %s", err)
+		log.Printf("Could not read distonic pipeline config: %s", err)
 		return nil, err
 	}
 
-	log.Fatal(p.AllKeys())
-
-	return &Pipeline{}, nil
+	pipeline, err := NewPipeline(p)
+	if err != nil {
+		log.Printf("Could not initialize pipeline: %s", err)
+		return nil, err
+	}
+	return pipeline, nil
 }

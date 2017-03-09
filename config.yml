@@ -1,7 +1,7 @@
 ---
 repos:
   distonic:
-    url: https://github.com/stonicio/distonic.git
+    url: .
     branches:
     - master
     - develop
