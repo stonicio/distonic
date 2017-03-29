@@ -93,7 +93,8 @@ func (w *Watcher) Run(orders chan<- *Order) error {
 				branchName: branchName,
 				commit:     commit}
 			orders <- order
-			log.Printf("New order: %s", order)
+			log.Printf(
+				"New order for `%s:%s`", order.repoName, order.branchName)
 		}
 
 		time.Sleep(interval)

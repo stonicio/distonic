@@ -4,19 +4,13 @@ import (
 	"log"
 
 	"github.com/spf13/viper"
+	"github.com/stonicio/distonic/module"
+	"github.com/stonicio/distonic/registry"
 )
-
-type BindableModule interface {
-	Bind(params map[string]interface{}) (CallableModule, error)
-}
-
-type CallableModule interface {
-	Call(context *Context) error
-}
 
 type Job struct {
 	name   string
-	module CallableModule
+	module module.Callable
 }
 
 type Stage struct {
@@ -40,10 +34,13 @@ func NewPipeline(p *viper.Viper) (*Pipeline, error) {
 				case "name":
 					job.name = v.(string)
 				default:
-					module, err := getModule(k.(string))
+					module, err := registry.Get(k.(string))
 					if err != nil {
 						log.Print(err)
 						continue jobs
+					}
+					if v == nil {
+						v = map[string]interface{}{}
 					}
 					job.module, err = module.Bind(v.(map[string]interface{}))
 					if err != nil {

@@ -1,4 +1,4 @@
-package distonic
+package module
 
 type Context struct {
 	Workdir      string

@@ -9,6 +9,7 @@ import (
 
 	git "github.com/libgit2/git2go"
 	"github.com/spf13/viper"
+	"github.com/stonicio/distonic/module"
 )
 
 type Worker struct {
@@ -20,10 +21,13 @@ func NewWorker() (*Worker, error) {
 
 func (w *Worker) Run(orders <-chan *Order) {
 	for order := range orders {
-		log.Printf("Received order: %s", order)
+		log.Printf(
+			"Received order for `%s:%s`", order.repoName, order.branchName)
 		err := w.processOrder(order)
 		if err != nil {
-			log.Printf("Error processing order `%s`: %s", order, err)
+			log.Printf(
+				"Error processing `%s:%s`: %s",
+				order.repoName, order.branchName, err)
 		}
 	}
 }
@@ -31,11 +35,13 @@ func (w *Worker) Run(orders <-chan *Order) {
 func (w *Worker) processOrder(order *Order) error {
 	workdir, err := w.prepareWorkdir(order)
 	if err != nil {
-		log.Printf("Error preparing workdir for order `%s`: %s", order, err)
+		log.Printf(
+			"Error preparing workdir for `%s:%s`: %s",
+			order.repoName, order.branchName, err)
 		return err
 	}
 
-	context := &Context{
+	context := &module.Context{
 		Workdir:      workdir,
 		Branch:       order.branchName,
 		BranchDashed: strings.Replace(order.branchName, "/", "-", -1),
@@ -43,7 +49,9 @@ func (w *Worker) processOrder(order *Order) error {
 
 	pipeline, err := w.readPipeline(context)
 	if err != nil {
-		log.Printf("Could not read pipeline for order `%s`: %s", order, err)
+		log.Printf(
+			"Could not read pipeline for `%s:%s`: %s",
+			order.repoName, order.branchName, err)
 		return err
 	}
 
@@ -106,7 +114,7 @@ func (w *Worker) prepareWorkdir(order *Order) (string, error) {
 	return workDir, nil
 }
 
-func (w *Worker) readPipeline(context *Context) (*Pipeline, error) {
+func (w *Worker) readPipeline(context *module.Context) (*Pipeline, error) {
 	configName := "distonic"
 	configFilename := path.Join(context.Workdir, "distonic.yml")
 
