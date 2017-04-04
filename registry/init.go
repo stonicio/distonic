@@ -7,11 +7,11 @@ import (
 	"github.com/stonicio/distonic/module/docker_run"
 )
 
-var registry map[string]module.Bindable
+var registry map[string]module.Module
 
 func init() {
-	registry = map[string]module.Bindable{}
-	Register(docker_build.NewDockerBuild())
-	Register(docker_run.NewDockerRun())
-	Register(docker_registry.NewDockerRegistry())
+	registry = map[string]module.Module{}
+	Register(docker_build.ID, docker_build.New())
+	Register(docker_run.ID, docker_run.New())
+	Register(docker_registry.ID, docker_registry.New())
 }

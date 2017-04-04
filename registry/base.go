@@ -6,21 +6,20 @@ import (
 	"github.com/stonicio/distonic/module"
 )
 
-func Register(reg module.Registerable) error {
-	id, module := reg.Register()
+func Register(id string, m module.Module) error {
 	if _, ok := registry[id]; ok {
 		return fmt.Errorf("Module `%s` is already registered", id)
 	}
 
-	registry[id] = module
+	registry[id] = m
 	return nil
 }
 
-func Get(id string) (module.Bindable, error) {
-	module, ok := registry[id]
+func Get(id string) (module.Module, error) {
+	m, ok := registry[id]
 	if !ok {
 		return nil, fmt.Errorf("Could not find `%s` module", id)
 	}
 
-	return module, nil
+	return m, nil
 }

@@ -3,6 +3,7 @@ package distonic
 import (
 	"fmt"
 
+	"github.com/mitchellh/mapstructure"
 	"github.com/stonicio/distonic/module"
 	"github.com/stonicio/distonic/registry"
 )
@@ -14,7 +15,7 @@ type Result struct {
 
 type Job struct {
 	name   string
-	module module.Callable
+	module module.Module
 }
 
 func (j *Job) Run() (*Result, error) {
@@ -40,17 +41,12 @@ func (j *Job) UnmarshalYAML(unmarshal func(interface{}) error) error {
 			if err != nil {
 				return err
 			}
-			params := map[string]interface{}{}
-			if v != nil {
-				for vk, vv := range v.(map[interface{}]interface{}) {
-					params[vk.(string)] = vv
-				}
-			}
-			b, err := m.Bind(params)
-			if err != nil {
+
+			if err := mapstructure.Decode(v, m); err != nil {
 				return err
 			}
-			j.module = b
+
+			j.module = m
 		}
 	}
 
