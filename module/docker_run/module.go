@@ -1,7 +1,7 @@
 package docker_run
 
 import (
-	"log"
+	"fmt"
 
 	"github.com/stonicio/distonic/module"
 )
@@ -18,7 +18,7 @@ type dockerRun struct {
 	Cmd string
 }
 
-func (m *dockerRun) Call(context *module.Context) error {
-	log.Printf("Module `%s` called with context: %s", ID, context)
-	return nil
+func (m *dockerRun) Call(context *module.Context) (*module.Result, error) {
+	description := fmt.Sprintf("Module `%s` called with context: %s", ID, context)
+	return &module.Result{Success: false, Description: description}, nil
 }

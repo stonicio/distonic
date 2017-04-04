@@ -57,7 +57,9 @@ func (w *Worker) processOrder(order *Order) error {
 		return err
 	}
 
-	log.Fatalf("%+v", pipeline)
+	result, err := pipeline.Run()
+	log.Printf("### %+v", result)
+	log.Printf("$$$ %s", err)
 
 	return nil
 }

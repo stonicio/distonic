@@ -3,6 +3,9 @@ package distonic
 import (
 	"fmt"
 	"strings"
+	"sync"
+
+	"github.com/stonicio/distonic/module"
 )
 
 type Stage struct {
@@ -10,21 +13,25 @@ type Stage struct {
 	jobs []*Job
 }
 
-func (s *Stage) Run() (*Result, error) {
-	result := &Result{}
+func (s *Stage) Run() (*module.Result, error) {
+	var wg sync.WaitGroup
+	result := &module.Result{}
 	errorJobs := []string{}
 	failedJobs := []string{}
 
 	for _, job := range s.jobs {
+		wg.Add(1)
 		go func() {
 			jobResult, err := job.Run()
 			if err != nil {
 				errorJobs = append(errorJobs, job.name)
-			} else if !jobResult.success {
+			} else if !jobResult.Success {
 				failedJobs = append(failedJobs, job.name)
 			}
+			wg.Done()
 		}()
 	}
+	wg.Wait()
 
 	if len(errorJobs) > 0 {
 		return result, fmt.Errorf(
@@ -32,12 +39,12 @@ func (s *Stage) Run() (*Result, error) {
 	}
 
 	if len(failedJobs) > 0 {
-		result.description = fmt.Sprintf(
+		result.Description = fmt.Sprintf(
 			"Failed jobs: %s", strings.Join(failedJobs, ", "))
 		return result, nil
 	}
 
-	result.success = true
+	result.Success = true
 
 	return result, nil
 }

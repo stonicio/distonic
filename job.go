@@ -8,18 +8,14 @@ import (
 	"github.com/stonicio/distonic/registry"
 )
 
-type Result struct {
-	success     bool
-	description string
-}
-
 type Job struct {
 	name   string
 	module module.Module
 }
 
-func (j *Job) Run() (*Result, error) {
-	return &Result{}, nil
+func (j *Job) Run() (*module.Result, error) {
+	r, err := j.module.Call(&module.Context{})
+	return r, err
 }
 
 func (j *Job) UnmarshalYAML(unmarshal func(interface{}) error) error {

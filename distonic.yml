@@ -3,7 +3,7 @@ build:
 - name: build container
   docker_build: null
 test:
-- name: go test
+- name: run tests
   docker_run:
     cmd: go test
 release:

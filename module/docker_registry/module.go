@@ -1,7 +1,7 @@
 package docker_registry
 
 import (
-	"log"
+	"fmt"
 
 	"github.com/stonicio/distonic/module"
 )
@@ -19,7 +19,7 @@ type dockerRegistry struct {
 	Tags []string
 }
 
-func (m *dockerRegistry) Call(context *module.Context) error {
-	log.Printf("Module `%s` called with context: %s", ID, context)
-	return nil
+func (m *dockerRegistry) Call(context *module.Context) (*module.Result, error) {
+	description := fmt.Sprintf("Module `%s` called with context: %s", ID, context)
+	return &module.Result{Success: true, Description: description}, nil
 }
