@@ -1,6 +1,7 @@
 package distonic
 
 import (
+	"io/ioutil"
 	"log"
 	"os"
 	"path"
@@ -10,6 +11,7 @@ import (
 	git "github.com/libgit2/git2go"
 	"github.com/spf13/viper"
 	"github.com/stonicio/distonic/module"
+	"gopkg.in/yaml.v2"
 )
 
 type Worker struct {
@@ -55,7 +57,7 @@ func (w *Worker) processOrder(order *Order) error {
 		return err
 	}
 
-	log.Fatal(pipeline)
+	log.Fatalf("%+v", pipeline)
 
 	return nil
 }
@@ -115,7 +117,6 @@ func (w *Worker) prepareWorkdir(order *Order) (string, error) {
 }
 
 func (w *Worker) readPipeline(context *module.Context) (*Pipeline, error) {
-	configName := "distonic"
 	configFilename := path.Join(context.Workdir, "distonic.yml")
 
 	t, err := template.ParseFiles(configFilename)
@@ -135,18 +136,18 @@ func (w *Worker) readPipeline(context *module.Context) (*Pipeline, error) {
 		return nil, err
 	}
 
-	p := viper.New()
-	p.SetConfigName(configName)
-	p.AddConfigPath(context.Workdir)
-	if err := p.ReadInConfig(); err != nil {
+	pData, err := ioutil.ReadFile(configFilename)
+	if err != nil {
 		log.Printf("Could not read distonic pipeline config: %s", err)
 		return nil, err
 	}
 
-	pipeline, err := NewPipeline(p)
+	var p Pipeline
+	err = yaml.Unmarshal(pData, &p)
 	if err != nil {
 		log.Printf("Could not initialize pipeline: %s", err)
 		return nil, err
 	}
-	return pipeline, nil
+
+	return &p, nil
 }
