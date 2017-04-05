@@ -17,6 +17,9 @@ func (p *Pipeline) Run() (*module.Result, error) {
 			return result, err
 		}
 		*result = *stageResult
+		if !result.Success {
+			break
+		}
 	}
 
 	return result, nil
