@@ -1,4 +1,4 @@
-package distonic
+package watcher
 
 import (
 	"log"
@@ -9,6 +9,13 @@ import (
 	git "github.com/libgit2/git2go"
 	"github.com/spf13/viper"
 )
+
+type Order struct {
+	RepoName   string
+	Repo       *git.Repository
+	BranchName string
+	Commit     *git.Commit
+}
 
 type Watcher struct {
 	name        string
@@ -88,13 +95,13 @@ func (w *Watcher) Run(orders chan<- *Order) error {
 				return err
 			}
 			order := &Order{
-				repoName:   w.name,
-				repo:       w.repo,
-				branchName: branchName,
-				commit:     commit}
+				RepoName:   w.name,
+				Repo:       w.repo,
+				BranchName: branchName,
+				Commit:     commit}
 			orders <- order
 			log.Printf(
-				"New order for `%s:%s`", order.repoName, order.branchName)
+				"New order for `%s:%s`", order.RepoName, order.BranchName)
 		}
 
 		time.Sleep(interval)

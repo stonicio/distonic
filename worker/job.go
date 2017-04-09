@@ -1,4 +1,4 @@
-package distonic
+package worker
 
 import (
 	"fmt"

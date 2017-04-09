@@ -1,4 +1,4 @@
-package distonic
+package worker
 
 import (
 	"io/ioutil"
@@ -11,6 +11,7 @@ import (
 	git "github.com/libgit2/git2go"
 	"github.com/spf13/viper"
 	"github.com/stonicio/distonic/module"
+	"github.com/stonicio/distonic/watcher"
 	"gopkg.in/yaml.v2"
 )
 
@@ -21,39 +22,39 @@ func NewWorker() (*Worker, error) {
 	return &Worker{}, nil
 }
 
-func (w *Worker) Run(orders <-chan *Order) {
+func (w *Worker) Run(orders <-chan *watcher.Order) {
 	for order := range orders {
 		log.Printf(
-			"Received order for `%s:%s`", order.repoName, order.branchName)
+			"Received order for `%s:%s`", order.RepoName, order.BranchName)
 		err := w.processOrder(order)
 		if err != nil {
 			log.Printf(
 				"Error processing `%s:%s`: %s",
-				order.repoName, order.branchName, err)
+				order.RepoName, order.BranchName, err)
 		}
 	}
 }
 
-func (w *Worker) processOrder(order *Order) error {
+func (w *Worker) processOrder(order *watcher.Order) error {
 	workdir, err := w.prepareWorkdir(order)
 	if err != nil {
 		log.Printf(
 			"Error preparing workdir for `%s:%s`: %s",
-			order.repoName, order.branchName, err)
+			order.RepoName, order.BranchName, err)
 		return err
 	}
 
 	context := &module.Context{
 		Workdir:      workdir,
-		Branch:       order.branchName,
-		BranchDashed: strings.Replace(order.branchName, "/", "-", -1),
-		Commit:       order.commit.Object.Id().String()}
+		Branch:       order.BranchName,
+		BranchDashed: strings.Replace(order.BranchName, "/", "-", -1),
+		Commit:       order.Commit.Object.Id().String()}
 
 	pipeline, err := w.readPipeline(context)
 	if err != nil {
 		log.Printf(
 			"Could not read pipeline for `%s:%s`: %s",
-			order.repoName, order.branchName, err)
+			order.RepoName, order.BranchName, err)
 		return err
 	}
 
@@ -64,7 +65,7 @@ func (w *Worker) processOrder(order *Order) error {
 	return nil
 }
 
-func (w *Worker) prepareWorkdir(order *Order) (string, error) {
+func (w *Worker) prepareWorkdir(order *watcher.Order) (string, error) {
 	var err error
 	var repo *git.Repository
 
@@ -72,22 +73,22 @@ func (w *Worker) prepareWorkdir(order *Order) (string, error) {
 	workDir := path.Join(
 		dataDir,
 		"worker",
-		order.repoName,
-		order.branchName,
-		order.commit.Object.Id().String())
+		order.RepoName,
+		order.BranchName,
+		order.Commit.Object.Id().String())
 
 	if _, err := os.Stat(workDir); os.IsNotExist(err) {
 		repo, err = git.Clone(
-			order.repo.Path(),
+			order.Repo.Path(),
 			workDir,
 			&git.CloneOptions{
 				Bare:           false,
-				CheckoutBranch: order.branchName,
+				CheckoutBranch: order.BranchName,
 				CheckoutOpts:   &git.CheckoutOpts{Strategy: git.CheckoutForce}})
 		if err != nil {
 			log.Printf(
 				"Cannot make working clone for repo `%s`: %s",
-				order.repoName, err)
+				order.RepoName, err)
 			return "", err
 		}
 	} else {
@@ -95,14 +96,14 @@ func (w *Worker) prepareWorkdir(order *Order) (string, error) {
 		if err != nil {
 			log.Printf(
 				"Cannot open working clone for repo `%s`: %s",
-				order.repoName, err)
+				order.RepoName, err)
 			return "", err
 		}
 	}
 
-	err = repo.SetHeadDetached(order.commit.Object.Id())
+	err = repo.SetHeadDetached(order.Commit.Object.Id())
 	if err != nil {
-		log.Printf("Cannot set head on repo `%s`: %s", order.repoName, err)
+		log.Printf("Cannot set head on repo `%s`: %s", order.RepoName, err)
 		return "", err
 	}
 
@@ -110,7 +111,7 @@ func (w *Worker) prepareWorkdir(order *Order) (string, error) {
 	if err != nil {
 		log.Printf(
 			"Cannot checkout workdir for repo `%s`: %s",
-			order.repoName, err)
+			order.RepoName, err)
 		return "", err
 	}
 

@@ -4,7 +4,7 @@ import (
 	"log"
 
 	"github.com/spf13/viper"
-	"github.com/stonicio/distonic"
+	"github.com/stonicio/distonic/supervisor"
 )
 
 func main() {
@@ -14,7 +14,7 @@ func main() {
 	}
 	log.Println("Config read successfully")
 
-	supervisor, err := distonic.NewSupervisor()
+	supervisor, err := supervisor.NewSupervisor()
 	if err != nil {
 		log.Panicf("Cannot create supervisor: %s", err)
 	}

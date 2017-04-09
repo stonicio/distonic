@@ -1,26 +1,20 @@
-package distonic
+package supervisor
 
 import (
 	"container/list"
 	"log"
 	"sync"
 
-	git "github.com/libgit2/git2go"
 	"github.com/spf13/viper"
+	"github.com/stonicio/distonic/watcher"
+	"github.com/stonicio/distonic/worker"
 )
 
 type Supervisor struct {
-	repos   map[string]*Watcher
-	workers []*Worker
+	repos   map[string]*watcher.Watcher
+	workers []*worker.Worker
 	queue   *list.List
 	bell    chan bool
-}
-
-type Order struct {
-	repoName   string
-	repo       *git.Repository
-	branchName string
-	commit     *git.Commit
 }
 
 func NewSupervisor() (*Supervisor, error) {
@@ -29,14 +23,14 @@ func NewSupervisor() (*Supervisor, error) {
 	numWorkers := viper.GetInt("num_workers")
 
 	s := &Supervisor{
-		repos:   map[string]*Watcher{},
-		workers: []*Worker{},
+		repos:   map[string]*watcher.Watcher{},
+		workers: []*worker.Worker{},
 		queue:   list.New(),
 		bell:    make(chan bool, 1)}
 
 	for repoName := range viper.GetStringMap("repos") {
 		repoSettings := reposConfig.Sub(repoName)
-		s.repos[repoName], err = NewWatcher(
+		s.repos[repoName], err = watcher.NewWatcher(
 			repoName,
 			repoSettings.GetString("url"),
 			repoSettings.GetStringSlice("branches"))
@@ -48,7 +42,7 @@ func NewSupervisor() (*Supervisor, error) {
 	}
 
 	for n := 0; n < numWorkers; n++ {
-		w, err := NewWorker()
+		w, err := worker.NewWorker()
 		if err != nil {
 			log.Printf("Cannot create worker #%s: %s", n, err)
 			return nil, err
@@ -78,7 +72,7 @@ func (s *Supervisor) Run() {
 }
 
 func (s *Supervisor) runWatchers() {
-	orders := make(chan *Order, len(s.repos))
+	orders := make(chan *watcher.Order, len(s.repos))
 
 	for name, watcher := range s.repos {
 		go func() {
@@ -95,7 +89,7 @@ func (s *Supervisor) runWatchers() {
 }
 
 func (s *Supervisor) runWorkers() {
-	orders := make(chan *Order, len(s.workers))
+	orders := make(chan *watcher.Order, len(s.workers))
 
 	for _, worker := range s.workers {
 		go func() {
@@ -107,12 +101,12 @@ func (s *Supervisor) runWorkers() {
 		log.Printf("Bell rings")
 		for s.queue.Len() > 0 {
 			order := s.queue.Remove(s.queue.Front())
-			orders <- order.(*Order)
+			orders <- order.(*watcher.Order)
 		}
 	}
 }
 
-func (s *Supervisor) schedule(order *Order) error {
+func (s *Supervisor) schedule(order *watcher.Order) error {
 	s.queue.PushBack(order)
 
 	select {

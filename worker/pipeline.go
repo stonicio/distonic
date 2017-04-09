@@ -1,4 +1,4 @@
-package distonic
+package worker
 
 import (
 	"github.com/stonicio/distonic/module"
