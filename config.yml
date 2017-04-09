@@ -9,4 +9,9 @@ repos:
 data_dir: /tmp/distonic_home
 worker:
   concurrency: 3
+artefactory:
+  storage:
+    backend: mongodb
+    mongodb:
+      url: mongodb
 ...
