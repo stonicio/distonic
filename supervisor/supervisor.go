@@ -20,7 +20,7 @@ type Supervisor struct {
 func NewSupervisor() (*Supervisor, error) {
 	var err error
 	reposConfig := viper.Sub("repos")
-	numWorkers := viper.GetInt("num_workers")
+	numWorkers := viper.GetInt("worker.concurrency")
 
 	s := &Supervisor{
 		repos:   map[string]*watcher.Watcher{},
